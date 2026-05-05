@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TARUS Machine Control Setup Guide</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#fefce8',
+                            100: '#fef9c3',
+                            200: '#fef08a',
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#FFCB05', /* Bright Maize Accent */
+                            600: '#00274C', /* Deep Blue Header/Primary */
+                            700: '#001f3d',
+                            800: '#00182f',
+                            900: '#000f1f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Unified Bold Values (No Background Boxes) */
+        .val, .val-purple, .val-amber {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        
+        .ui {
+            font-weight: 700;
+            color: #334155;
+        }
+        
+        kbd {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            border-radius: 0.375rem;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: monospace;
+            box-shadow: 0 2px 0 #cbd5e1;
+            margin: 0 0.25rem;
+        }
+
+        .cmd-btn { 
+            background-color: #fefce8;
+            border: 2px solid #facc15;
+            color: #00274C;
+            font-weight: 900;
+            padding: 0.125rem 0.625rem;
+            border-radius: 0.375rem;
+            margin: 0 0.25rem;
+            font-size: 13.5px;
+            letter-spacing: 0.025em;
+            display: inline-block;
+            vertical-align: middle;
+            font-family: monospace;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        pre code { background-color: transparent; padding: 0; color: #4ade80; border: none; box-shadow: none; font-family: monospace; font-weight: 500; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 0.25rem; border: 1px solid #cbd5e1; background-color: #ffffff; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+        
+        /* Navigation styling */
+        .nav-link { flex-shrink: 0; white-space: nowrap; text-align: left; width: 100%; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 700; transition: all 0.2s; font-size: 0.875rem; border: 1px solid transparent; }
+        .nav-link.active { background-color: #001f3d; color: #FFCB05; border-color: #00182f; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #FFCB05; }
+        .nav-link.inactive { color: #829ab1; }
+        .nav-link.inactive:hover { background-color: #001f3d; color: #ffffff; }
+
+        /* WYSIWYG Editor List Overrides */
+        .editable-content ul { list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .editable-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+
+        /* Edit Mode Styles */
+        body.edit-mode-active [contenteditable="true"] { outline: none; border: 1px dashed #FFCB05; background-color: rgba(254,252,232,0.5); border-radius: 0.25rem; padding: 0.25rem; cursor: text; }
+        .edit-only { display: none; }
+        body.edit-mode-active .edit-only { display: flex; }
+        body.edit-mode-active .edit-only-block { display: block; }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="antialiased selection:bg-primary-200 selection:text-primary-900">
+
+    <!-- Mobile Sticky Header & Backdrop -->
+    <div class="md:hidden sticky top-0 z-[60] bg-primary-600 border-b border-primary-700 text-white p-4 flex justify-between items-center shadow-md w-full">
+        <div>
+            <span class="text-xl font-black tracking-tighter text-primary-500">TARUS</span>
+            <span class="text-[10px] font-black text-primary-100 uppercase tracking-widest ml-2" id="mobileTitle">Machine Control</span>
+        </div>
+        <button onclick="toggleSidebar()" class="p-1 focus:outline-none text-primary-200 hover:text-white bg-primary-700 rounded border border-primary-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+    </div>
+    <div id="mobile-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm z-50 hidden md:hidden transition-opacity"></div>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="w-72 bg-primary-600 text-white flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl z-[70] md:h-screen">
+            <div class="p-4 md:p-8 border-b border-primary-700 flex justify-between items-center hidden md:block">
+                <div>
+                    <span class="text-2xl md:text-3xl font-black tracking-tighter text-primary-500">TARUS</span>
+                    <div class="text-[10px] md:text-xs font-black text-primary-200 uppercase tracking-widest md:mt-1" id="sidebarSubtitle">Machine Control</div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-3 md:p-4 flex flex-col gap-2 overflow-y-auto no-scrollbar shadow-inner md:shadow-none bg-primary-600/95 backdrop-blur mt-16 md:mt-0">
+                <button onclick="toggleSidebar()" class="md:hidden flex justify-end text-primary-200 hover:text-white p-2 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+
+                <button id="defaultOpen" class="nav-link inactive" onclick="openTab(event, 'overview')">Hardware Overview</button>
+                <button class="nav-link inactive" onclick="openTab(event, 'column')">1. Column PC Setup</button>
+                <button class="nav-link inactive" onclick="openTab(event, 'desk')">2. Desk PC Setup</button>
+                <button class="nav-link inactive" onclick="openTab(event, 'connect')">3. Troubleshooting</button>
+                <button class="nav-link inactive" onclick="openTab(event, 'toolkit')">Technician Toolkit</button>
+                <button class="nav-link inactive" onclick="openTab(event, 'requirements')">Computer Requirements</button>
+
+                <div class="mt-4 pt-4 border-t border-primary-700"></div>
+                
+                <a href="https://tarus-docs.github.io/OS-Recovery-Guide/" target="_blank" class="nav-link text-primary-100 hover:bg-primary-700 hover:text-white border border-primary-500 flex items-center justify-between" title="Click to open the OS Downgrade & Recovery Guide">
+                    <span>OS Recovery Guide</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </a>
+            </nav>
+
+            <!-- Editing Controls Section -->
+            <div class="p-4 border-t border-primary-700 bg-primary-700 z-50 shadow-inner">
+                <button id="editToggleBtn" onclick="toggleEditMode()" class="w-full text-center text-[12px] font-bold text-primary-200 hover:text-white border border-primary-500 hover:bg-primary-600 rounded py-2 transition-colors">
+                    Enable Edit Mode
+                </button>
+                <div id="exportTools" class="edit-only flex-col gap-2 mt-2">
+                    <button onclick="exportGuide('master')" class="w-full bg-primary-800 hover:bg-primary-900 text-white font-bold text-[11px] uppercase tracking-wider rounded py-2 shadow border border-primary-500 transition-colors">
+                        Save Master Guide
+                    </button>
+                    <button onclick="exportGuide('field')" class="w-full bg-primary-500 hover:bg-primary-400 text-primary-900 font-bold text-[11px] uppercase tracking-wider rounded py-2 shadow transition-colors flex items-center justify-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Field Guide
+                    </button>
+                </div>
+            </div>
+            
+            <div class="hidden md:block p-6 border-t border-primary-800 bg-primary-800 text-xs text-primary-300 font-medium leading-relaxed">
+                &copy; 2026 Tarus Products Inc.<br>Internal Documentation
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 md:ml-72 p-4 sm:p-6 md:p-12 max-w-5xl w-full">
+
+            <!-- TAB: OVERVIEW -->
+            <section id="overview" class="tab-content hidden animate-fade-in pb-20">
+                <div class="mb-6 md:mb-8 border-b border-slate-200 pb-4 editable-header">
+                    <h2 class="text-2xl md:text-3xl font-black text-primary-600 tracking-tight editable-content">Hardware Overview</h2>
+                    <p class="text-sm md:text-base text-slate-600 font-semibold mt-2 editable-content">Target specifications for the Tarus Remote Desktop systems.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-5 md:gap-8 sortable-container">
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-primary-600 relative">
+                        <h3 class="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2 text-slate-500 editable-content">PC 1: COLUMN (HOST)</h3>
+                        <h2 class="text-xl md:text-2xl font-black mb-4 text-slate-900 editable-content">OnLogic Helix 52X</h2>
+                        <ul class="text-[14px] md:text-[15px] space-y-3 font-semibold text-slate-700 editable-content">
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> OS: Windows 10 IoT Enterprise LTSC</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> CPU: Intel Ultra 5 125H</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> RAM: 64.0 GB</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> Network: Dual Ethernet</li>
+                        </ul>
+                    </div>
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-primary-600 relative">
+                        <h3 class="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2 text-slate-500 editable-content">PC 2: DESK (CLIENT)</h3>
+                        <h2 class="text-xl md:text-2xl font-black mb-4 text-slate-900 editable-content">OnLogic MiTAC UltraPoint</h2>
+                        <ul class="text-[14px] md:text-[15px] space-y-3 font-semibold text-slate-700 editable-content">
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> OS: Windows 10 IoT Enterprise LTSC</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> CPU: Intel Celeron J3455</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> RAM: 8.0 GB</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-primary-500"></div> Network: Single Ethernet</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="sortable-container mt-5 md:mt-8">
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-600 relative">
+                        <h3 class="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2 text-slate-500 editable-content">Alternative: Single PC System</h3>
+                        <h2 class="text-xl md:text-2xl font-black mb-4 text-slate-900 editable-content">HP Z2 Mini G9 Workstation</h2>
+                        <ul class="text-[14px] md:text-[15px] space-y-3 font-semibold text-slate-700 editable-content">
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> OS: Windows 10 IoT Enterprise LTSC / Windows 10 Pro</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> CPU: Intel Core i9-14900 (or equivalent)</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> GPU: NVIDIA T1000 8GB (or equivalent)</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> RAM: 32.0 GB</li>
+                            <li class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> Network: Dual Ethernet (Required for Machine &amp; Customer separation)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: COLUMN PC -->
+            <section id="column" class="tab-content hidden pb-20">
+                <div class="mb-8 md:mb-10 editable-header">
+                    <span class="badge editable-content">Machine Control Side</span>
+                    <h2 class="text-3xl md:text-4xl font-black text-primary-600 tracking-tight editable-content">Procedure 1: Column PC Setup</h2>
+                    <p class="text-slate-700 font-semibold mt-2 md:mt-3 text-base md:text-lg editable-content">Configures the primary host machine, Siemens Operate, and SProxy control networks.</p>
+                </div>
+
+                <div class="sortable-container space-y-6 md:space-y-8">
+                    <!-- INFO BLOCK -->
+                    <div class="step-card group bg-white border border-slate-200 border-l-4 border-l-primary-500 p-5 md:p-6 rounded-lg shadow-sm relative">
+                        <p class="text-primary-600 font-black text-xs md:text-sm mb-2 uppercase tracking-tight flex items-center gap-2 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Prerequisite: Download Required Files
+                        </p>
+                        <p class="text-slate-800 text-[14px] md:text-[15px] leading-relaxed font-semibold md:ml-8 editable-content">The Technician needs to go to the <span class="ui">Applications Teams Channel</span> and download the whole <span class="val">Tarus Tech</span> folder. This folder has the latest TarusNC version, the latest Default Configuration File for an LCMT 5 axis Baserail, the Software Password Folder for daily passwords, the desktop images used for the two PCs, among many other very useful files and applications.</p>
+                    </div>
+
+                    <!-- WARNING BLOCK -->
+                    <div class="step-card group bg-red-50 border border-red-200 border-l-4 border-l-red-600 p-5 md:p-6 rounded-lg shadow-sm relative">
+                        <p class="text-red-900 font-black text-xs md:text-sm mb-2 uppercase tracking-tight flex items-center gap-2 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            Critical Warning
+                        </p>
+                        <p class="text-red-950 text-[14px] md:text-[15px] leading-relaxed font-semibold md:ml-8 editable-content">Using a default machine configuration on a live machine can cause catastrophic damage. Ensure you have the specific job ConfigurationFiles (e.g., <span class="val">3529-Column</span>) downloaded before finalizing the software setup.</p>
+                    </div>
+
+                    <!-- CARD 1 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">1</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Initial Windows Configuration</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li>Power on the PC. Select <span class="val">United States</span> for the region and <span class="val">US</span> for the keyboard layout. Click <span class="val">Skip</span> for the second layout.</li>
+                                <li>When prompted to connect to a network, select <span class="val">I don't have Internet</span>, then click <span class="val">Continue with limited setup</span>. Accept the Windows License Agreement.</li>
+                                <li>Create a local account using Username: <span class="val">Tarus</span> and Password: <span class="val">Tarus123</span>. (Select the security questions in order and use <span class="val">Tarus</span> as the answer for all 3).</li>
+                                <li>On the Privacy Settings screen, toggle ALL options to <span class="val">OFF</span> and click <span class="val">Accept</span>.</li>
+                                <li>Once at the Windows desktop, connect to the <span class="val">tarusguest</span> Wi-Fi network to gain internet access.</li>
+                                <li>Go to <span class="ui">Start</span> &gt; <span class="ui">Settings</span> &gt; <span class="ui">System</span> &gt; <span class="ui">About</span>. Click <span class="val">Rename this PC</span> and name it <span class="val">[JobNum]-Column</span>. Select <span class="val">Restart later</span>.</li>
+                                <li>Right-click the Start Menu and select <span class="ui">Run</span>. Type <span class="cmd-btn">UAC</span> and press <kbd>Enter</kbd>. Drag the slider all the way down to <span class="val">Never notify</span> and click <span class="val">OK</span>.</li>
+                                <li>Go to <span class="ui">Start</span> &gt; <span class="ui">Settings</span> &gt; <span class="ui">System</span> &gt; <span class="ui">Notifications &amp; actions</span>. Toggle the main "Get notifications from apps and other senders" to <span class="val">Off</span>.</li>
+                                <li>Go to <span class="ui">Settings</span> &gt; <span class="ui">Time &amp; Language</span> &gt; <span class="ui">Date &amp; time</span>. Change the Time Zone to <span class="val">Eastern Time</span>. Toggle <span class="val">Set time automatically</span> to <span class="val">On</span>, then click <span class="val">Sync now</span>.</li>
+                                <li>Go to <span class="ui">Settings</span> &gt; <span class="ui">Update &amp; Security</span>. Click <span class="val">Check for updates</span>. Install all available updates. Restart and repeat until the page says "You're up to date".</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">2</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Prep, BIOS & System Hardening</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li><strong>System Permissions:</strong> Open File Explorer. Right-click the <span class="val">C:</span> drive and select <span class="ui">Properties</span> &gt; <span class="ui">Security</span> tab &gt; <span class="ui">Edit</span>. Check the Allow box for <span class="val">Full Control</span> for ALL listed Users and Groups. Click <span class="val">Apply</span> and <span class="val">OK</span>.</li>
+                                <li>Open <span class="ui">View network connections</span> from the Start menu. Identify the port for the private machine network and rename it to <span class="val">Machine Control</span>. Identify the port for the remote desktop and rename it to <span class="val">Customer Network</span>.</li>
+                                <li>Restart the PC and press <kbd>Esc</kbd> to enter the BIOS. In the <span class="ui">Advanced</span> tab, set "After Power Loss" to <span class="val">Power On</span>. Save and Exit.</li>
+                                <li>Right-click the Start button and select <span class="val">Windows PowerShell (Admin)</span>.</li>
+                                <li>Type <span class="cmd-btn">irm "https://christitus.com/win" | iex</span> and press <kbd>Enter</kbd>.</li>
+                                <li>Navigate to the <span class="ui">Tweaks</span> tab and click the <span class="val">Standard</span> profile button. Ensure the following additional advanced tweaks are explicitly checked:
+                                    <ul class="list-disc list-inside ml-2 md:ml-4 mt-3 md:mt-4 space-y-2 md:space-y-3 text-[14px] md:text-[15px] font-bold text-slate-700 bg-slate-50 p-4 md:p-6 rounded-lg border border-slate-200 shadow-inner">
+                                        <li><span class="val">Create Restore Point</span></li>
+                                        <li><span class="val">Edge Debloat</span></li>
+                                        <li><span class="val">Remove Xbox &amp; Gaming Components</span></li>
+                                        <li><span class="val">Set Classic Right-Click Menu</span></li>
+                                        <li><span class="val">Set Display for Performance</span></li>
+                                    </ul>
+                                </li>
+                                <li>Under the Performance Plans section on the right side of the utility, click <span class="val">Add and Activate Ultimate Performance Profile</span>.</li>
+                                <li>Leave the WinUtil window open. Click back into the blue Admin PowerShell window running behind it, paste the following command, and hit <kbd>Enter</kbd>. This foolproof script creates the plan, brands it, activates it, and enforces strict CNC power timeouts:
+                                    <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                        <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                        <pre class="bg-slate-900 text-white p-4 md:p-5 pr-14 md:pr-16 rounded-xl shadow-inner overflow-x-auto border-t-4 border-primary-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-emerald-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">$p = powercfg /list | Select-String "TARUS - Ultimate"; if (-not $p) { $n = powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61; $guid = ($n -split '\s+')[3]; powercfg /changename $guid "TARUS - Ultimate Power Plan" "Ultimate Performance for Tarus Control" } else { $guid = ($p.ToString() -split '\s+')[3] }; powercfg /setactive $guid; powercfg /change standby-timeout-ac 0 2&gt;$null; powercfg /change monitor-timeout-ac 0 2&gt;$null; powercfg /change hibernate-timeout-ac 0 2&gt;$null; powercfg /change disk-timeout-ac 0 2&gt;$null; powercfg /setacvalueindex $guid 2a737441-1930-4402-8d77-b2bea128a440 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2&gt;$null; powercfg /setacvalueindex $guid 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a55844a 0 2&gt;$null; powercfg /setactive $guid; powercfg /list | Select-String "Power Scheme GUID" | Where-Object { $_ -notmatch $guid -and $_ -notmatch "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" } | ForEach-Object { powercfg /delete ($_ -split '\s+')[3] 2&gt;$null }; Write-Host "TARUS Power Plan Created, Activated &amp; Enforced." -ForegroundColor Yellow</code></pre>
+                                    </div>
+                                </li>
+                                <li>Click <span class="val">Run Tweaks</span> at the bottom of the utility and wait for it to complete.</li>
+                                <li>Navigate to the <span class="ui">Updates</span> tab and select <span class="val">Security Settings</span>. Close the utility.</li>
+                                <li>Open the Windows <span class="ui">Control Panel</span> &gt; <span class="ui">Power Options</span>. Verify the newly active plan is <strong class="text-black font-black">TARUS - Ultimate Power Plan</strong>. Click <span class="val">Change plan settings</span>. Click <span class="val">Change advanced power settings</span>. Expand <span class="ui">Hard disk</span> and verify "Turn off hard disk after" is set to <span class="val">0</span>. Click <span class="val">Apply</span> and <span class="val">OK</span>.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- CARD 3 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">3</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Core Software & Configuration Files</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li>Create a <span class="val">C:\Temp</span> folder. Unzip the Siemens installer here. Run <span class="val">SINUMERIK_OPERATE_pc.exe</span> as Administrator. (Select <span class="val">Standard ONE NCU</span> and <span class="val">Complete setup</span>). Restart when prompted.</li>
+                                <li>Open the Windows Control Panel and set View by to <strong>Small icons</strong>. Look for <span class="ui">Communication Settings</span>.
+                                    <div class="text-[13px] text-slate-700 font-medium bg-white border border-slate-200 border-l-4 border-l-primary-500 p-4 rounded-lg shadow-sm mt-3 mb-3">
+                                        <p>💡 <strong class="text-primary-600">Missing Icon?</strong> It is common for the applet to fail to register on the first install. If "Communication Settings" is missing, run <span class="val">SINUMERIK_OPERATE_pc.exe</span> again, select <span class="val">Repair</span>, and restart. Repeat this Repair/Restart loop as many times as needed until the icon successfully appears.</p>
+                                    </div>
+                                    Once open, select <span class="ui">Access points</span>. Expand <span class="val">S7ONLINE</span> and select the <span class="val">Machine Control</span> adapter.
+                                </li>
+                                <li>Run the TarusNC installer as Administrator. (Select <span class="val">TarusNC Only</span> and <span class="val">SProxy</span>). Restart the PC.</li>
+                                <li><strong>Install Utilities:</strong> Install Google Chrome and Notepad++ from your downloaded Tarus Tech folder. Go to <span class="ui">Settings</span> &gt; <span class="ui">Apps</span> &gt; <span class="ui">Default apps</span>. Set the Web browser to <span class="val">Google Chrome</span>, and set <span class="val">.txt</span> files to open with <span class="val">Notepad++</span>.</li>
+                                <li><strong>Hide the Siemens Operate UI:</strong> Open File Explorer and navigate to exactly: <span class="val">C:\Program Files (x86)\Siemens\MotionControl\siemens\sinumerik\hmi\cfg</span>. 
+                                    <ul class="list-none space-y-3 mt-3 mb-4 bg-slate-50 p-4 border border-slate-200 rounded-lg text-[13px] md:text-[14px]">
+                                        <li><strong>Step A:</strong> From your downloaded <strong>Tarus Tech</strong> folder, copy the pre-configured <span class="val">systemconfiguration - hide.ini</span> file and paste it directly into this directory.</li>
+                                        <li><strong>Step B:</strong> Rename the original <span class="val">systemconfiguration.ini</span> to <span class="val">systemconfiguration - Show.ini</span>.</li>
+                                        <li><strong>Step C:</strong> Rename the pasted <span class="val">systemconfiguration - hide.ini</span> to just <span class="val">systemconfiguration.ini</span>.</li>
+                                    </ul>
+                                    <div class="text-[13px] text-slate-700 font-medium bg-white border border-slate-200 border-l-4 border-l-primary-500 p-4 rounded-lg shadow-sm space-y-2 mb-3">
+                                        <p>💡 <strong class="text-primary-600">How to un-hide later:</strong> If you need to see the Siemens window for diagnostics, open Task Manager and end <em>TarusNC</em>, <em>SProxy</em>, and all <em>Siemens</em> tasks. Rename the active <span class="val">systemconfiguration.ini</span> to <span class="val">systemconfiguration - Hide.ini</span>, and rename the <span class="val">systemconfiguration - Show.ini</span> back to <span class="val">systemconfiguration.ini</span>. You should only ever have <strong>two</strong> configuration files in this folder at a time.</p>
+                                    </div>
+                                    <em class="text-slate-500 text-[12px] md:text-[13px] block">(Note: If doing this manually without the downloaded file, open Notepad++ as Administrator, duplicate the original file, edit the active one, locate the <span class="val">[dialogs]</span> section, and comment out every <span class="val">DLG=...</span> line AND the <span class="val">Startup Area=AreaMachine</span> line by adding a <span class="val">;</span> to the beginning of each line.)</em>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- CARD 4 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">4</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Network IPs, Graphics & Handoff</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li>Right-click the <span class="val">Machine Control</span> adapter and select <span class="ui">Properties</span>. Uncheck everything EXCEPT <span class="val">Internet Protocol Version 4 (TCP/IPv4)</span>. Click IPv4 &gt; <span class="ui">Properties</span> and set the IP address to <span class="val">192.168.214.55</span> with Subnet Mask <span class="val">255.255.255.0</span>. Leave Gateway blank. Return to the main Properties window, click <span class="ui">Configure</span>. Go to the <span class="ui">Power Management</span> tab and uncheck BOTH power saving boxes. Go to the <span class="ui">Advanced</span> tab and set <span class="val">Energy-Efficient Ethernet</span> to <span class="val">Off</span>.</li>
+                                <li>Navigate to <span class="val">C:\Tarus Products\</span>. Delete the default <span class="val">ConfigurationFiles</span> folder and paste in the specific folder for this job from your downloaded files.</li>
+                                <li>Right-click the <span class="val">Customer Network</span> adapter and select <span class="ui">Properties</span>. Uncheck all items EXCEPT <span class="val">Client for Microsoft Networks</span>, <span class="val">File and Printer Sharing</span>, and <span class="val">Internet Protocol Version 4 (TCP/IPv4)</span>. Select IPv4 &gt; <span class="ui">Properties</span>, and ensure it is set to <span class="val">Obtain an IP address automatically</span> (DHCP). Return to main Properties, click <span class="ui">Configure</span> &gt; <span class="ui">Power Management</span> and uncheck <span class="val">Allow the computer to turn off this device</span>. Set Energy-Efficient Ethernet to <span class="val">Off</span>.
+                                    <br><br><strong class="text-slate-900 block mb-1">Crucial Wi-Fi Step:</strong> Repeat this power-saving disable process for the Wi-Fi adapter. Right-click your Wi-Fi adapter, click <span class="ui">Properties</span> &gt; <span class="ui">Configure</span> &gt; <span class="ui">Power Management</span>, and ensure <span class="val">Allow the computer to turn off this device</span> is UNCHECKED.
+                                </li>
+                                <li><strong>Configure Windows Graphics:</strong> Go to <span class="ui">Start</span> &gt; <span class="ui">Settings</span> &gt; <span class="ui">System</span> &gt; <span class="ui">Display</span> &gt; <span class="ui">Graphics settings</span>. Click <span class="val">Browse</span> and locate <span class="val">TarusNC.exe</span>. Click the application in the list, select <span class="val">Options</span>, and choose <span class="val">High performance</span> to force Windows to use the NVIDIA GPU.</li>
+                                <li><strong>Configure NVIDIA Control Panel:</strong> Open the <span class="ui">NVIDIA Control Panel</span> &gt; <span class="ui">Manage 3D Settings</span>. Set the Global Power Management Mode to <span class="val">Prefer Maximum Performance</span>. Under Program Settings, add <span class="val">TarusNC.exe</span> and set it to <span class="val">High Performance</span>. Finally, navigate to the <span class="ui">Configure Surround, PhysX</span> tab and set the Processor directly to your <span class="val">NVIDIA GPU</span>.</li>
+                                <li>Go to <span class="ui">Settings</span> &gt; <span class="ui">System</span> &gt; <span class="ui">Remote Desktop</span> and toggle it to <span class="val">On</span>. Click <span class="val">Confirm</span>.</li>
+                                <li>From your downloaded <span class="val">Tarus Tech</span> folder, copy the <span class="val">TARUS Column PC logo.png</span> file into the Pictures folder. Right-click the Desktop &gt; <span class="ui">Personalize</span>, and set it as the Desktop Background.</li>
+                                <li><strong>Create IT Handoff Documentation:</strong> Right-click the Start Menu, select <span class="ui">Run</span>, type <span class="cmd-btn">cmd</span> and hit Enter. In the black window, type <span class="cmd-btn">ipconfig /all</span> and press Enter. Record the Physical Address (MAC) for the Customer Network adapter. Provide the customer IT department with the following info:<br>
+                                    <ul class="list-disc list-inside ml-2 md:ml-4 mt-3 bg-slate-50 p-4 border border-slate-200 rounded-lg space-y-2">
+                                        <li>PC Name: <span class="val">[Job Number]-Column</span></li>
+                                        <li>MAC Address: <span class="val">[Physical Address]</span></li>
+                                        <li>Required By: <span class="val">[Job Number]-Desk</span></li>
+                                        <li>Purpose: <span class="val">Requires RDP access through firewall policies.</span></li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: DESK PC -->
+            <section id="desk" class="tab-content hidden pb-20">
+                <div class="mb-8 md:mb-10 editable-header">
+                    <span class="badge editable-content border-slate-400 bg-slate-200 text-slate-900">Operator Station Side</span>
+                    <h2 class="text-3xl md:text-4xl font-black text-primary-600 tracking-tight editable-content">Procedure 2: Desk PC Setup</h2>
+                    <p class="text-slate-700 font-semibold mt-2 md:mt-3 text-base md:text-lg editable-content">Configures the client workstation to boot, bypass passwords, and automatically launch the video kiosk.</p>
+                </div>
+
+                <div class="sortable-container space-y-6 md:space-y-8">
+                    <!-- CARD 1 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">1</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Initial Windows Configuration</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li>Connect the Desk PC to the network via Ethernet. Power on and select <span class="val">United States</span> and <span class="val">US</span> Keyboard.</li>
+                                <li>When prompted to sign in, select <span class="val">Offline account</span>, then click <span class="val">Limited experience</span>.</li>
+                                <li>Create a local account using Username: <span class="val">Tarus</span> and Password: <span class="val">Tarus123</span>. (Select the security questions in order and use <span class="val">Tarus</span> as the answer for all 3).</li>
+                                <li>On the Privacy Settings screen, toggle ALL options to <span class="val">OFF</span> and click <span class="val">Accept</span>.</li>
+                                <li>Go to <span class="ui">Start</span> &gt; <span class="ui">Settings</span> &gt; <span class="ui">System</span> &gt; <span class="ui">About</span>. Click Rename PC and enter <span class="val">[JobNum]-Desk</span>.</li>
+                                <li>Go to <span class="ui">Settings</span> &gt; <span class="ui">Update &amp; Security</span>. Click <span class="val">Check for updates</span> and install all available updates. Restart as needed.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">2</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">WinUtil & System Hardening</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li><strong>System Permissions:</strong> Open File Explorer. Right-click the <span class="val">C:</span> drive and select <span class="ui">Properties</span> &gt; <span class="ui">Security</span> tab &gt; <span class="ui">Edit</span>. Check the Allow box for <span class="val">Full Control</span> for ALL listed Users and Groups. Click <span class="val">Apply</span>.</li>
+                                <li>Restart the PC and press <kbd>Esc</kbd> to enter the BIOS. In the <span class="ui">Advanced</span> tab, set "After Power Loss" to <span class="val">Power On</span>. Save and Exit.</li>
+                                <li>Right-click the Start button and select <span class="val">Windows PowerShell (Admin)</span>. Type <span class="cmd-btn">irm "https://christitus.com/win" | iex</span> and press <kbd>Enter</kbd>.</li>
+                                <li>Navigate to the <span class="ui">Tweaks</span> tab and click the <span class="val">Standard</span> profile button. Ensure these advanced tweaks are checked:
+                                    <ul class="list-disc list-inside ml-2 md:ml-4 mt-3 md:mt-4 space-y-2 md:space-y-3 text-[14px] md:text-[15px] font-bold text-slate-700 bg-slate-50 p-4 md:p-6 rounded-lg border border-slate-200 shadow-inner">
+                                        <li><span class="val">Create Restore Point</span></li>
+                                        <li><span class="val">Edge Debloat</span></li>
+                                        <li><span class="val">Remove Xbox &amp; Gaming Components</span></li>
+                                        <li><span class="val">Set Classic Right-Click Menu</span></li>
+                                        <li><span class="val">Set Display for Performance</span></li>
+                                    </ul>
+                                </li>
+                                <li>Under the Performance Plans section on the right side, click <span class="val">Add and Activate Ultimate Performance Profile</span>.</li>
+                                <li>Paste the following command into the Admin PowerShell window currently running behind WinUtil, then hit <kbd>Enter</kbd>. This script automatically brands and enforces the Kiosk power profile:
+                                    <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                        <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                        <pre class="bg-slate-900 text-white p-4 md:p-5 pr-14 md:pr-16 rounded-xl shadow-inner overflow-x-auto border-t-4 border-primary-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-emerald-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">$p = powercfg /list | Select-String "TARUS - Ultimate"; if (-not $p) { $n = powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61; $guid = ($n -split '\s+')[3]; powercfg /changename $guid "TARUS - Ultimate Power Plan" "Ultimate Performance for Tarus Kiosk" } else { $guid = ($p.ToString() -split '\s+')[3] }; powercfg /setactive $guid; powercfg /change standby-timeout-ac 0 2&gt;$null; powercfg /change monitor-timeout-ac 0 2&gt;$null; powercfg /change hibernate-timeout-ac 0 2&gt;$null; powercfg /change disk-timeout-ac 0 2&gt;$null; powercfg /setacvalueindex $guid 2a737441-1930-4402-8d77-b2bea128a440 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2&gt;$null; powercfg /setacvalueindex $guid 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a55844a 0 2&gt;$null; powercfg /setactive $guid; powercfg /list | Select-String "Power Scheme GUID" | Where-Object { $_ -notmatch $guid -and $_ -notmatch "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" } | ForEach-Object { powercfg /delete ($_ -split '\s+')[3] 2&gt;$null }; Write-Host "TARUS Power Plan Created, Activated &amp; Enforced." -ForegroundColor Yellow</code></pre>
+                                    </div>
+                                </li>
+                                <li>Click <span class="val">Run Tweaks</span> at the bottom of the utility and wait for it to complete.</li>
+                                <li>Navigate to the <span class="ui">Updates</span> tab and select <span class="val">Disable All Updates</span>. (Critical: This ensures the Kiosk never reboots or lags during production). Close the utility.</li>
+                                <li>Open the Windows <span class="ui">Control Panel</span> &gt; <span class="ui">Power Options</span>. Verify the newly active plan is <strong class="text-black font-black">TARUS - Ultimate Power Plan</strong>. Click <span class="val">Change plan settings</span>. Click <span class="val">Change advanced power settings</span>. Expand <span class="ui">Hard disk</span> and verify "Turn off hard disk after" is set to <span class="val">0</span>. Click <span class="val">Apply</span> and <span class="val">OK</span>.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- CARD 3 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">3</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Remote Desktop Configuration & Test</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li>Open the Remote Desktop Connection app (Click the Start Menu, type <span class="cmd-btn">Remote Desktop Connection</span>, and open it).</li>
+                                <li>Configure the connection: Enter the Computer name <span class="val">[JobNum]-Column</span>. <br>
+                                <em class="text-slate-500 text-[13px] block mt-1">CAUTION: You must use the PC Name, not an IP address. This ensures it will work on the customer's network once their IT department has configured it.</em></li>
+                                <li>Click the <span class="val">Show Options</span> button. Enter Username: <span class="val">Tarus</span> and check the box for <span class="val">Allow me to save credentials</span>.</li>
+                                <li><strong>CRITICAL - Security Prompt Fix:</strong> Go to the <span class="ui">Local Resources</span> tab. Uncheck BOTH <span class="val">Printers</span> and <span class="val">Clipboard</span>. Next, click the <span class="val">More...</span> button at the bottom. You MUST uncheck every single box in this list (Smart cards, WebAuthn, Ports, Drives, etc). Click OK. <br>
+                                <span class="text-[12px] md:text-[13px] text-slate-700 font-bold mt-2 block bg-white border border-slate-200 border-l-4 border-l-primary-500 p-4 rounded-lg shadow-sm">💡 By completely disabling local resource sharing, Windows is forced to bring back the missing "Don't ask me again" checkbox during the security prompt later in this step!</span></li>
+                                <li>Go to the <span class="ui">Display</span> tab and check <span class="val">Use all my monitors for the remote session</span>.</li>
+                                <li>Go back to the <span class="ui">General</span> tab, click <span class="val">Save As...</span>, and save the file to the Desktop as <span class="val">Connect to Machine Control</span>. Close the Remote Desktop app.</li>
+                                <li><strong>Manual Connection Test:</strong> On the desktop, double-click the new `Connect to Machine Control` icon. Enter the password <span class="val">Tarus123</span> and critically, check the box for <span class="val">Remember me</span> to save the password into Windows.</li>
+                                <li>Click <span class="val">OK</span> to connect. Because you disabled resources in step 4, the yellow security prompt will now have a visible <span class="val">Don't ask me again for connections to this computer</span> checkbox. Check this box and click <span class="val">Yes</span>. The prompt will never appear again.</li>
+                                <li>Confirm the connection is successful. You should see the Column PC's desktop. Once confirmed, disconnect by clicking the "X" on the blue RDP bar at the top of the screen.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- CARD 4 -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                            <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center">4</span>
+                            <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                            <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1">Kiosk Automation & Final Polish</h3>
+                        </div>
+                        <div class="p-5 md:p-8">
+                            <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content">
+                                <li><strong>Force Auto-Login Checkbox (Registry Fix):</strong> Right-click the Start Menu and select <span class="ui">Run</span>. Type <span class="cmd-btn">regedit</span> and press <kbd>Enter</kbd> (Click Yes to UAC). In the address bar at the top, paste this exact path: <br>
+                                <span class="val mt-2 mb-2 block overflow-x-auto">HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device</span>
+                                On the right-hand side, double-click <span class="ui">DevicePasswordLessBuildVersion</span> and change the "Value data" to <span class="val">0</span>. Click OK and close the Registry Editor.</li>
+                                <li><strong>Configure Auto-Login:</strong> Right-click the Start Menu again and select <span class="ui">Run</span>. Type <span class="cmd-btn">netplwiz</span> and press <kbd>Enter</kbd>.</li>
+                                <li>Select the <span class="val">Tarus</span> user. Uncheck <span class="val">Users must enter a username and password to use this computer</span> and click <span class="ui">Apply</span>. An <strong>"Automatically sign in"</strong> window will pop up. Enter Password: <span class="val">Tarus123</span> (confirm the password), then click <span class="val">OK</span> to close both windows.</li>
+                                <li><strong>Create Prompt-Free Startup Shortcut:</strong> Right-click an empty space on the Desk PC desktop, select <span class="ui">New</span> &gt; <span class="ui">Shortcut</span>. In the location box, paste this exact command (<strong>Make sure to replace [JobNum] with your actual Job Number!</strong>):
+                                    <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                        <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                        <pre class="bg-slate-900 text-white p-4 md:p-5 pr-14 md:pr-16 rounded-xl shadow-inner overflow-x-auto border-t-4 border-primary-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-emerald-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">cmd /c start /high mstsc.exe /v:[JobNum]-Column /multimon /f</code></pre>
+                                    </div>
+                                    Click <span class="ui">Next</span>, name the shortcut <span class="val">Machine Control</span>, and click <span class="ui">Finish</span>.<br>
+                                    <span class="text-[12px] md:text-[13px] text-slate-700 font-bold mt-2 block bg-white border border-slate-200 border-l-4 border-l-primary-500 p-4 rounded-lg shadow-sm">💡 <strong>Security Prompt Fix:</strong> By launching the connection directly via this command-line parameter instead of using an unsigned .rdp file, Windows completely skips the new un-hideable "Unknown remote connection" prompt!</span>
+                                </li>
+                                <li><strong>Set RDP to Launch on Startup:</strong> Right-click the Start Menu and select <span class="ui">Run</span>. Type <span class="cmd-btn">shell:startup</span> and hit <kbd>Enter</kbd>. Drag (or Cut/Paste) the newly created Machine Control shortcut into this Startup folder. <br>
+                                <span class="text-slate-500 font-bold block mt-1 text-[13px]">Leave the original `.rdp` file physically on the desktop so technicians can easily double-click it for maintenance in the future.</span>
+                                </li>
+                                <li>From your downloaded <span class="val">Tarus Tech</span> folder, copy the <span class="val">TARUS Desk PC Status Message logo.png</span> file into the Pictures folder and set it as the Desktop Background.</li>
+                                <li>Right-click the Desktop, select <span class="ui">View</span>, and uncheck <span class="val">Show desktop icons</span> for a clean kiosk appearance. Restart the PC to verify it logs in and connects automatically.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: TROUBLESHOOTING -->
+            <section id="connect" class="tab-content hidden animate-fade-in pb-20">
+                <div class="mb-8 md:mb-10 editable-header">
+                    <span class="badge editable-content">Support & Diagnostics</span>
+                    <h2 class="text-3xl md:text-4xl font-black text-primary-600 tracking-tight editable-content">Troubleshooting & Maintenance</h2>
+                    <p class="text-slate-700 font-semibold mt-2 md:mt-3 text-base md:text-lg editable-content">Resolves common network drops and handles credential/history management.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-5 md:gap-8 sortable-container">
+                    <!-- TR Card 1 -->
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-red-600"></div>
+                        <h4 class="font-black text-slate-900 mb-3 md:mb-4 text-lg md:text-xl flex items-center gap-3 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6 text-red-600"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            Network Stack Corruption
+                        </h4>
+                        <p class="text-[14px] md:text-[15px] font-semibold leading-relaxed text-slate-600 mb-4 md:mb-5 editable-content">If Remote Desktop fails despite verifying Ethernet cables and pinging the IP successfully, the Windows networking framework may be corrupt.</p>
+                        <ol class="text-[14px] md:text-[15px] text-slate-800 space-y-2 md:space-y-3 list-decimal list-inside font-bold editable-content">
+                            <li>Launch WinUtil (Right-click Start Menu &gt; <span class="val">Windows PowerShell (Admin)</span> &gt; type <span class="cmd-btn">irm christitus.com/win | iex</span>)</li>
+                            <li>Navigate to the <span class="ui">Config</span> Tab.</li>
+                            <li>Click <span class="val">Reset Network</span> under Fixes.</li>
+                            <li>Restart PC and re-apply static IPv4 settings.</li>
+                        </ol>
+                    </div>
+
+                    <!-- TR Card 2 -->
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+                        <h4 class="font-black text-slate-900 mb-3 md:mb-4 text-lg md:text-xl flex items-center gap-3 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            High Latency / Video Lag
+                        </h4>
+                        <p class="text-[14px] md:text-[15px] font-semibold leading-relaxed text-slate-600 mb-4 md:mb-5 editable-content">If the Desk PC connects but the interface is severely lagging or dropping frames, check the Column PC graphics settings.</p>
+                        <ol class="text-[14px] md:text-[15px] text-slate-800 space-y-2 md:space-y-3 list-decimal list-inside font-bold editable-content">
+                            <li>Go to <span class="ui">Settings</span> &gt; <span class="ui">System</span> &gt; <span class="ui">Display</span> &gt; <span class="ui">Graphics settings</span> on the Column PC.</li>
+                            <li>Ensure Hardware-accelerated GPU scheduling is <span class="val">OFF</span>.</li>
+                            <li>Ensure <span class="val">TarusNC.exe</span> is set to <span class="val">High Performance</span>.</li>
+                        </ol>
+                    </div>
+
+                    <!-- TR Card 3 -->
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-slate-600"></div>
+                        <h4 class="font-black text-slate-900 mb-3 md:mb-4 text-lg md:text-xl flex items-center gap-3 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6 text-slate-600"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            Clear RDP Connection History
+                        </h4>
+                        <p class="text-[14px] md:text-[15px] font-semibold leading-relaxed text-slate-600 mb-4 md:mb-5 editable-content">How to completely wipe saved passwords and clear old computer names out of the Remote Desktop dropdown menu.</p>
+                        <ol class="text-[14px] md:text-[15px] text-slate-800 space-y-2 md:space-y-3 list-decimal list-inside font-bold editable-content">
+                            <li class="font-black text-slate-900 mb-2">Step A: Remove Saved Passwords</li>
+                            <li>Click Start, type <span class="cmd-btn">Credential Manager</span>, and hit Enter.</li>
+                            <li>Click on <span class="ui">Windows Credentials</span> and scroll to <span class="ui">Generic Credentials</span>.</li>
+                            <li>Look for entries starting with <span class="val">TERMSRV/</span>. Click the down arrow and select <span class="val">Remove</span>.</li>
+                            <li class="font-black text-slate-900 mt-4 mb-2">Step B: Clear Dropdown History (Registry)</li>
+                            <li>Right-click Start Menu, select <span class="ui">Run</span>, type <span class="cmd-btn">regedit</span> and hit Enter.</li>
+                            <li>Navigate to: <br> <span class="val mt-2 mb-2 block overflow-x-auto">HKEY_CURRENT_USER\Software\Microsoft\Terminal Server Client\Default</span></li>
+                            <li>In the right pane, right-click any <span class="ui">MRU</span> entries (e.g., MRU0, MRU1) you want to remove and select <span class="ui">Delete</span>. Close the Registry Editor.</li>
+                        </ol>
+                    </div>
+
+                    <!-- TR Card 4 -->
+                    <div class="step-card group bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-primary-600"></div>
+                        <h4 class="font-black text-slate-900 mb-3 md:mb-4 text-lg md:text-xl flex items-center gap-3 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 md:w-6 md:h-6 text-primary-600"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" /></svg>
+                            Revoke RDP User Access
+                        </h4>
+                        <p class="text-[14px] md:text-[15px] font-semibold leading-relaxed text-slate-600 mb-4 md:mb-5 editable-content">How to permanently revoke a user's permission to remotely access the Column PC.</p>
+                        <ol class="text-[14px] md:text-[15px] text-slate-800 space-y-2 md:space-y-3 list-decimal list-inside font-bold editable-content">
+                            <li>Click Start, type <span class="cmd-btn">Advanced system settings</span>, and hit Enter.</li>
+                            <li>Go to the <span class="ui">Remote</span> tab at the top.</li>
+                            <li>Under the "Remote Desktop" section, click the <span class="ui">Select Users...</span> button.</li>
+                            <li>Select the user you want to revoke access from and click <span class="val">Remove</span>.</li>
+                            <li>Click <span class="val">OK</span>, and then OK again to apply the changes.</li>
+                        </ol>
+                        <div class="text-[12px] md:text-[13px] text-slate-600 font-bold mt-4 block bg-white border border-slate-200 border-l-4 border-l-primary-500 p-4 rounded-lg shadow-sm editable-content">Note: Administrators automatically have access. To block all connections entirely, select the "Don't allow remote connections to this computer" option on the Remote tab.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: TECHNICIAN TOOLKIT -->
+            <section id="toolkit" class="tab-content hidden animate-fade-in pb-20">
+                <div class="mb-8 md:mb-10 editable-header">
+                    <span class="badge editable-content" style="background-color: #f0fdf4; border-color: #86efac; color: #166534;">Field Operations</span>
+                    <h2 class="text-3xl md:text-4xl font-black text-primary-600 tracking-tight editable-content">Technician Toolkit</h2>
+                    <p class="text-slate-700 font-semibold mt-2 md:mt-3 text-base md:text-lg editable-content">1-click PowerShell commands to bypass customer IT policies, verify network drops, and audit hardware natively.</p>
+                    
+                    <div class="bg-red-50 border border-red-200 border-l-4 border-l-red-600 p-4 rounded-lg shadow-sm mt-6 editable-content">
+                        <p class="text-red-900 font-black text-xs uppercase tracking-tight flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            Warning: Administrative Privileges Required
+                        </p>
+                        <p class="text-red-950 text-[13px] font-semibold ml-6 mt-1">These tools modify core system behaviors. You must right-click the Start Menu and run <strong>Windows PowerShell (Admin)</strong> before pasting these scripts.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-8 sortable-container">
+                    <!-- Tool 1: Audit -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-6 md:py-5 border-b border-primary-700 bg-primary-600 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <h3 class="text-lg md:text-xl font-black text-white editable-content">1. Hardware & Network Audit (WMI)</h3>
+                            <span class="text-xs font-bold text-primary-900 bg-primary-500 px-2 py-1 rounded w-fit editable-content">Safe to Run Anytime</span>
+                        </div>
+                        <div class="p-5 md:p-6">
+                            <p class="text-sm font-semibold text-slate-600 mb-4 editable-content">Instantly pulls Motherboard, CPU, GPU, RAM, and active MAC Addresses directly from the BIOS. Bypasses the need to download 3rd-party tools like Speccy.</p>
+                            <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                <pre class="bg-slate-900 text-white p-4 md:p-5 rounded-xl shadow-inner overflow-x-auto border-t-4 border-primary-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-emerald-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">Write-Host "--- TARUS SYSTEM AUDIT ---" -ForegroundColor Cyan; $sys = Get-CimInstance Win32_ComputerSystem; Write-Host "System: $($sys.Manufacturer) $($sys.Model)"; $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1; Write-Host "CPU:    $($cpu.Name)"; $gpu = Get-CimInstance Win32_VideoController | Select-Object -First 1; Write-Host "GPU:    $($gpu.Name)"; $ram = Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum; Write-Host "RAM:    $([Math]::Round($ram.Sum / 1GB)) GB"; Write-Host "--- ACTIVE MAC ADDRESSES ---" -ForegroundColor Cyan; Get-NetAdapter | Where-Object Status -eq "Up" | Select-Object InterfaceAlias, MacAddress | Format-Table -AutoSize</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tool 2: Power -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-6 md:py-5 border-b border-primary-700 bg-primary-600 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <h3 class="text-lg md:text-xl font-black text-white editable-content">2. CNC Ultimate Power Enforcer</h3>
+                            <span class="text-xs font-bold text-red-900 bg-red-100 px-2 py-1 rounded w-fit editable-content">Permanent Fix</span>
+                        </div>
+                        <div class="p-5 md:p-6">
+                            <p class="text-sm font-semibold text-slate-600 mb-2 editable-content">CNC controls require uninterrupted heartbeats. If customer IT policies enforce sleep settings, the SProxy/Siemens communication will drop out in micro-seconds, crashing the machine.</p>
+                            <p class="text-[13px] font-bold text-slate-500 mb-4 bg-slate-100 p-3 rounded border border-slate-200 editable-content">What this does: Intercepts the active power plan via registry (PowerCfg) and forces Display, Disk, Sleep, Hibernate, <strong>USB Selective Suspend</strong>, and <strong>PCIe Link State Power Management</strong> to 0 (Disabled).</p>
+                            <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                <pre class="bg-slate-900 text-white p-4 md:p-5 rounded-xl shadow-inner overflow-x-auto border-t-4 border-primary-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-emerald-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">$p = powercfg /list | Select-String "TARUS - Ultimate"; if (-not $p) { $n = powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61; $guid = ($n -split '\s+')[3]; powercfg /changename $guid "TARUS - Ultimate Power Plan" "Ultimate Performance for Tarus Control" } else { $guid = ($p.ToString() -split '\s+')[3] }; powercfg /setactive $guid; powercfg /change standby-timeout-ac 0 2&gt;$null; powercfg /change monitor-timeout-ac 0 2&gt;$null; powercfg /change hibernate-timeout-ac 0 2&gt;$null; powercfg /change disk-timeout-ac 0 2&gt;$null; powercfg /setacvalueindex $guid 2a737441-1930-4402-8d77-b2bea128a440 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2&gt;$null; powercfg /setacvalueindex $guid 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a55844a 0 2&gt;$null; powercfg /setactive $guid; powercfg /list | Select-String "Power Scheme GUID" | Where-Object { $_ -notmatch $guid -and $_ -notmatch "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" } | ForEach-Object { powercfg /delete ($_ -split '\s+')[3] 2&gt;$null }; Write-Host "TARUS Power Plan Created, Activated &amp; Enforced." -ForegroundColor Yellow</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tool 3: Ping -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-6 md:py-5 border-b border-primary-700 bg-primary-600 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <h3 class="text-lg md:text-xl font-black text-white editable-content">3. CNC Heartbeat Monitor (Ping Logger)</h3>
+                            <span class="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-1 rounded w-fit editable-content">Stop via Ctrl+C</span>
+                        </div>
+                        <div class="p-5 md:p-6">
+                            <p class="text-sm font-semibold text-slate-600 mb-4 editable-content">A standard Windows ping does not show <em>when</em> a network drop occurred. This script runs a continuous ping to the Column PC (<span class="val">192.168.214.55</span>) and attaches a millisecond timestamp to every packet. Useful for proving to customer IT exactly when network drops are occurring.</p>
+                            <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                <pre class="bg-slate-900 text-white p-4 md:p-5 rounded-xl shadow-inner overflow-x-auto border-t-4 border-primary-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-blue-300 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">ping 192.168.214.55 -t | ForEach-Object { if ($_ -match "Reply|Request|Destination") { "{0} - {1}" -f (Get-Date -Format "HH:mm:ss.fff"), $_ } }</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tool 4: Firewall -->
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="px-5 py-4 md:px-6 md:py-5 border-b border-primary-700 bg-primary-600 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <h3 class="text-lg md:text-xl font-black text-white editable-content">4. Firewall Override (Netsh)</h3>
+                            <span class="text-xs font-bold text-red-900 bg-red-100 px-2 py-1 rounded w-fit editable-content">Temporary Override</span>
+                        </div>
+                        <div class="p-5 md:p-6">
+                            <p class="text-sm font-semibold text-slate-600 mb-2 editable-content">Temporarily drops the Domain, Public, and Private firewalls to test blocked SProxy or Remote Desktop connections.</p>
+                            <p class="text-[13px] font-bold text-red-600 mb-4 bg-red-50 p-3 rounded border border-red-200 editable-content">Duration Note: The firewall will remain disabled until the PC reboots, the customer's Group Policy (GPO) refreshes (usually ~90 mins), or you manually run the Restore Script below.</p>
+                            
+                            <h5 class="text-sm font-black text-slate-800 mb-2 editable-content">A. DISABLE FIREWALL:</h5>
+                            <div class="relative mt-3 md:mt-4 mb-6" contenteditable="false">
+                                <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                <pre class="bg-slate-900 text-white p-4 md:p-5 rounded-xl shadow-inner overflow-x-auto border-t-4 border-red-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-red-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False; Write-Host "WARNING: All Firewalls Disabled." -ForegroundColor Red;</code></pre>
+                            </div>
+
+                            <h5 class="text-sm font-black text-slate-800 mb-2 editable-content">B. RESTORE FIREWALL:</h5>
+                            <div class="relative mt-3 md:mt-4 mb-2" contenteditable="false">
+                                <button onclick="copyCode(this)" class="absolute top-2 right-2 md:top-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-[11px] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md opacity-100 transition-opacity z-10 font-black shadow-md tracking-wider uppercase">Copy</button>
+                                <pre class="bg-slate-900 text-white p-4 md:p-5 rounded-xl shadow-inner overflow-x-auto border-t-4 border-emerald-500 relative"><code class="font-mono text-[12px] md:text-[14px] text-emerald-400 font-medium bg-transparent border-none p-0 shadow-none whitespace-pre">Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True; Write-Host "SUCCESS: Firewalls Restored to Secure State." -ForegroundColor Green;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- TAB: REQUIREMENTS -->
+            <section id="requirements" class="tab-content hidden animate-fade-in pb-20">
+                <div class="mb-8 md:mb-10 editable-header">
+                    <span class="badge editable-content" style="background-color: #f3f4f6; border-color: #cbd5e1; color: #334155;">System Architecture</span>
+                    <h2 class="text-3xl md:text-4xl font-black text-primary-600 tracking-tight editable-content">Computer Requirements</h2>
+                    <p class="text-slate-700 font-semibold mt-2 md:mt-3 text-base md:text-lg editable-content">TarusNC laptop and desktop hardware specifications for new equipment purchases.</p>
+                </div>
+
+                <div class="sortable-container space-y-6 md:space-y-8">
+                    <div class="step-card group bg-white border border-slate-200 border-l-4 border-l-primary-500 p-5 md:p-6 rounded-lg shadow-sm relative">
+                        <p class="text-primary-600 font-black text-xs md:text-sm mb-2 uppercase tracking-tight flex items-center gap-2 editable-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Important Notice Regarding TPICAM & Storage
+                        </p>
+                        <p class="text-slate-800 text-[14px] md:text-[15px] leading-relaxed font-semibold md:ml-8 editable-content">When using the TPICAM package for tool path generation (which is highly CPU and memory intensive), we strongly recommend upgrading to <strong>32GB of RAM</strong>. Additionally, because CAD files are quite large and consume disk space over time, a <strong>1TB Solid State Drive</strong> is recommended.</p>
+                    </div>
+
+                    <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-primary-600 text-white border-b border-primary-700">
+                                    <th class="p-4 md:p-5 font-black text-sm md:text-base uppercase tracking-wider w-1/3">Item</th>
+                                    <th class="p-4 md:p-5 font-black text-sm md:text-base uppercase tracking-wider">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm md:text-[15px] font-semibold text-slate-700 editable-content">
+                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">Processor</td>
+                                    <td class="p-4 md:p-5">Intel i7 (or equivalent/newer)</td>
+                                </tr>
+                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">Graphics</td>
+                                    <td class="p-4 md:p-5"><span class="val">Nvidia Chipset is Required</span></td>
+                                </tr>
+                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">RAM</td>
+                                    <td class="p-4 md:p-5">32 GB</td>
+                                </tr>
+                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">Hard Disk</td>
+                                    <td class="p-4 md:p-5">Solid State 1 TB</td>
+                                </tr>
+                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">Network Interface</td>
+                                    <td class="p-4 md:p-5">(2) Physically connected 100mb full duplex (for dedicated machine network)</td>
+                                </tr>
+                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">Operating System</td>
+                                    <td class="p-4 md:p-5">Windows 7 Pro / Windows 10 IoT/Pro</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-4 md:p-5 text-slate-900 font-bold">Screen Size</td>
+                                    <td class="p-4 md:p-5">17" (for laptops)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Global Edit Controls appended dynamically to Active Tab bottom -->
+            <div id="addToolsContainer" class="edit-only justify-center gap-4 mt-8 pb-12 w-full hidden border-t border-slate-200 pt-8 flex-wrap">
+                <button onclick="addStepCard()" class="bg-white border-2 border-slate-300 text-primary-600 hover:bg-slate-50 font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    Add Step Card
+                </button>
+                <button onclick="addInfoBlock()" class="bg-white border-2 border-primary-300 text-primary-700 hover:bg-primary-50 font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    Add Info Block
+                </button>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Floating Formatting Toolbar -->
+    <div id="formatToolbar" class="edit-only-block hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900 p-2 rounded-xl shadow-2xl z-[100] border border-slate-700 w-max max-w-[95vw] overflow-x-auto no-scrollbar flex-wrap justify-center">
+        <div class="flex items-center gap-1 min-w-max">
+            <button onclick="formatDoc('bold')" class="text-slate-300 hover:text-white hover:bg-slate-800 p-2 rounded transition-colors" title="Bold"><strong class="font-serif">B</strong></button>
+            <button onclick="formatDoc('italic')" class="text-slate-300 hover:text-white hover:bg-slate-800 p-2 rounded transition-colors" title="Italic"><em class="font-serif">I</em></button>
+            <button onclick="formatDoc('insertUnorderedList')" class="text-slate-300 hover:text-white hover:bg-slate-800 p-2 rounded transition-colors" title="Bullet List">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <button onclick="formatDoc('insertOrderedList')" class="text-slate-300 hover:text-white hover:bg-slate-800 p-2 rounded transition-colors" title="Numbered List">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h14M7 12h14M7 16h14M3 8h.01M3 12h.01M3 16h.01"/></svg>
+            </button>
+            <div class="w-px h-6 bg-slate-700 mx-1"></div>
+            <button onclick="wrapSelection('span', 'val')" class="text-[11px] font-bold bg-slate-100 text-slate-900 px-2 py-1.5 rounded border border-slate-300 hover:bg-slate-200 transition-colors">Bold Value</button>
+            <button onclick="wrapSelection('span', 'cmd-btn')" class="text-[11px] font-bold bg-amber-50 text-amber-900 px-2 py-1.5 rounded border border-amber-400 hover:bg-amber-100 transition-colors">Cmd Btn</button>
+            <button onclick="wrapSelection('span', 'ui')" class="text-[11px] font-bold text-white px-2 py-1.5 rounded border border-slate-500 hover:bg-slate-700 transition-colors">UI Bold</button>
+            <button onclick="wrapSelection('kbd', '')" class="text-[11px] font-bold bg-white text-slate-800 px-2 py-1.5 rounded border border-slate-300 shadow-sm hover:bg-slate-50 transition-colors">KBD Key</button>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // Core Tab Logic
+        function openTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            const tablinks = document.getElementsByClassName("nav-link");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+                tablinks[i].classList.add("inactive");
+            }
+
+            const targetTab = document.getElementById(tabName);
+            if(targetTab) {
+                targetTab.style.display = "block";
+                evt.currentTarget.classList.remove("inactive");
+                evt.currentTarget.classList.add("active");
+                
+                const addTools = document.getElementById('addToolsContainer');
+                if (document.body.classList.contains('edit-mode-active')) {
+                    addTools.classList.remove('hidden');
+                    addTools.classList.add('flex');
+                }
+                targetTab.appendChild(addTools);
+            }
+
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (!sidebar.classList.contains('-translate-x-full')) {
+                    toggleSidebar();
+                }
+            }
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        function copyCode(btn) {
+            const codeEl = btn.nextElementSibling.querySelector('code');
+            const textArea = document.createElement("textarea");
+            textArea.value = codeEl.innerText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const originalText = btn.innerText;
+                btn.innerText = 'COPIED!';
+                btn.classList.add('bg-green-600', 'text-white');
+                setTimeout(() => { 
+                    btn.innerText = originalText; 
+                    btn.classList.remove('bg-green-600');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- EDIT MODE LOGIC ---
+        let editMode = false;
+        function toggleEditMode() {
+            editMode = !editMode;
+            document.body.classList.toggle('edit-mode-active', editMode);
+            const btn = document.getElementById('editToggleBtn');
+            const addTools = document.getElementById('addToolsContainer');
+            
+            if (editMode) {
+                btn.innerText = "Disable Edit Mode";
+                btn.classList.replace('text-primary-200', 'text-amber-400');
+                addTools.classList.remove('hidden');
+                addTools.classList.add('flex');
+                injectCardTools();
+            } else {
+                btn.innerText = "Enable Edit Mode";
+                btn.classList.replace('text-amber-400', 'text-primary-200');
+                addTools.classList.add('hidden');
+                addTools.classList.remove('flex');
+                disableAllEditing();
+            }
+        }
+
+        function injectCardTools() {
+            document.querySelectorAll('.step-card').forEach(card => {
+                if (!card.classList.contains('relative')) card.classList.add('relative');
+                if (!card.querySelector('.card-toolbar')) {
+                    const toolbar = document.createElement('div');
+                    toolbar.className = "card-toolbar edit-only absolute -top-4 right-2 bg-slate-800 p-1.5 rounded-lg shadow-xl z-50 flex items-center gap-1 border border-slate-600 transition-opacity opacity-0 group-hover:opacity-100 hover:opacity-100";
+                    toolbar.innerHTML = `
+                        <label class="flex items-center text-[10px] text-white mr-2 cursor-pointer font-bold select-none px-1">
+                            <input type="checkbox" class="field-guide-cb mr-1.5 w-3.5 h-3.5 accent-primary-500" checked title="Include in Field Guide export"> 
+                            Field Guide
+                        </label>
+                        <div class="w-px h-4 bg-slate-600 mx-1"></div>
+                        <button onclick="moveCardUp(this)" class="text-white hover:bg-slate-600 rounded px-2 py-1 text-xs" title="Move Up">↑</button>
+                        <button onclick="moveCardDown(this)" class="text-white hover:bg-slate-600 rounded px-2 py-1 text-xs" title="Move Down">↓</button>
+                        <button onclick="toggleCardEdit(this)" class="edit-toggle-btn text-white hover:bg-slate-600 rounded px-2 py-1 text-xs font-bold transition-colors" title="Edit Content">✎ Edit</button>
+                        <div class="w-px h-4 bg-slate-600 mx-1"></div>
+                        <button onclick="deleteCard(this)" class="text-red-400 hover:bg-red-900/50 rounded px-2 py-1 text-xs" title="Delete">🗑</button>
+                    `;
+                    card.appendChild(toolbar);
+                }
+            });
+        }
+
+        function toggleCardEdit(btn) {
+            const card = btn.closest('.step-card');
+            const editables = card.querySelectorAll('.editable-content');
+            const isEditing = editables[0]?.getAttribute('contenteditable') === 'true';
+            
+            if(isEditing) {
+                editables.forEach(el => el.removeAttribute('contenteditable'));
+                btn.classList.remove('bg-primary-600');
+                btn.innerText = "✎ Edit";
+                document.getElementById('formatToolbar').classList.add('hidden');
+            } else {
+                disableAllEditing(); // clear others first
+                editables.forEach(el => el.setAttribute('contenteditable', 'true'));
+                btn.classList.add('bg-primary-600');
+                btn.innerText = "✓ Done";
+                document.getElementById('formatToolbar').classList.remove('hidden');
+            }
+        }
+
+        function disableAllEditing() {
+            document.querySelectorAll('[contenteditable="true"]').forEach(el => el.removeAttribute('contenteditable'));
+            document.getElementById('formatToolbar').classList.add('hidden');
+            document.querySelectorAll('.edit-toggle-btn').forEach(b => {
+                b.classList.remove('bg-primary-600');
+                b.innerText = "✎ Edit";
+            });
+        }
+
+        function moveCardUp(btn) {
+            const card = btn.closest('.step-card');
+            const prev = card.previousElementSibling;
+            if (prev && prev.classList.contains('step-card')) {
+                card.parentNode.insertBefore(card, prev);
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function moveCardDown(btn) {
+            const card = btn.closest('.step-card');
+            const next = card.nextElementSibling;
+            if (next && next.classList.contains('step-card')) {
+                card.parentNode.insertBefore(next, card);
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function deleteCard(btn) {
+            if(confirm("Are you sure you want to delete this block? This cannot be undone.")) {
+                btn.closest('.step-card').remove();
+                document.getElementById('formatToolbar').classList.add('hidden');
+            }
+        }
+
+        // Text Formatting Functions
+        function formatDoc(cmd, value=null) { document.execCommand(cmd, false, value); }
+        function wrapSelection(tag, className) {
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) return;
+            let isEditable = false;
+            let currentParent = selection.anchorNode.parentNode;
+            while(currentParent) {
+                if(currentParent.getAttribute && currentParent.getAttribute('contenteditable') === 'true') {
+                    isEditable = true; break;
+                }
+                currentParent = currentParent.parentNode;
+            }
+            if(!isEditable) { alert("Please click 'Edit' on a step card and highlight text to format."); return; }
+
+            const range = selection.getRangeAt(0);
+            const el = document.createElement(tag);
+            if (className) el.className = className;
+            el.appendChild(range.extractContents());
+            range.insertNode(el);
+            selection.removeAllRanges();
+            const newRange = document.createRange();
+            newRange.setStartAfter(el);
+            selection.addRange(newRange);
+        }
+
+        // Add Step Templates
+        function addStepCard() {
+            const container = document.querySelector('.tab-content[style*="display: block"] .sortable-container');
+            if(!container) return;
+            const template = `
+                <div class="step-card group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative mt-6">
+                    <div class="px-5 py-4 md:px-8 md:py-6 border-b-2 border-primary-700 flex items-center gap-3 md:gap-4 bg-primary-600">
+                        <span class="text-2xl md:text-4xl font-black text-primary-500 editable-content w-8 text-center" contenteditable="true">#</span>
+                        <div class="h-6 md:h-8 w-1 md:w-1.5 bg-primary-500 rounded-full indicator-bar"></div>
+                        <h3 class="text-lg md:text-2xl font-black text-white uppercase tracking-tight leading-tight editable-content flex-1" contenteditable="true">New Step Title</h3>
+                    </div>
+                    <div class="p-5 md:p-8">
+                        <ol class="list-decimal pl-5 md:pl-6 space-y-4 md:space-y-6 text-slate-800 font-medium text-[14px] md:text-[15px] marker:font-black marker:text-slate-900 editable-content" contenteditable="true">
+                            <li>New step instruction goes here.</li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', template);
+            injectCardTools();
+            container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const newBtn = container.lastElementChild.querySelector('.edit-toggle-btn');
+            if(newBtn) toggleCardEdit(newBtn);
+        }
+
+        function addInfoBlock() {
+            const container = document.querySelector('.tab-content[style*="display: block"] .sortable-container');
+            if(!container) return;
+            const template = `
+                <div class="step-card group bg-white border border-slate-200 border-l-4 border-l-primary-500 p-5 md:p-6 rounded-lg shadow-sm relative mt-6">
+                    <p class="text-primary-600 font-black text-xs md:text-sm mb-2 uppercase tracking-tight flex items-center gap-2 editable-content" contenteditable="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        New Info Title
+                    </p>
+                    <p class="text-slate-800 text-[14px] md:text-[15px] leading-relaxed font-semibold md:ml-8 editable-content" contenteditable="true">New info content goes here...</p>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', template);
+            injectCardTools();
+            container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const newBtn = container.lastElementChild.querySelector('.edit-toggle-btn');
+            if(newBtn) toggleCardEdit(newBtn);
+        }
+
+        // --- EXPORT LOGIC ---
+        function getFormattedDate() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+        function downloadHtml(filename, clonedDoc) {
+            const html = '<!DOCTYPE html>\n' + clonedDoc.outerHTML;
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
+        function cleanClone() {
+            const clone = document.documentElement.cloneNode(true);
+            clone.querySelectorAll('.edit-only, .edit-only-block, .card-toolbar, #addToolsContainer, #formatToolbar').forEach(el => el.remove());
+            clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+            clone.querySelector('body').classList.remove('edit-mode-active');
+            return clone;
+        }
+
+        function exportGuide(type) {
+            disableAllEditing();
+            const clone = cleanClone();
+            const dateStr = getFormattedDate();
+
+            if (type === 'field') {
+                const originalCards = document.querySelectorAll('.step-card');
+                const clonedCards = clone.querySelectorAll('.step-card');
+                
+                originalCards.forEach((orig, index) => {
+                    const cb = orig.querySelector('.field-guide-cb');
+                    if (cb && !cb.checked && clonedCards[index]) {
+                        clonedCards[index].remove();
+                    }
+                });
+
+                clone.querySelectorAll('.tab-content').forEach(tab => {
+                    const remainingCards = tab.querySelectorAll('.step-card');
+                    if(remainingCards.length === 0 && tab.id !== 'overview' && tab.id !== 'requirements') {
+                        const navBtn = clone.querySelector(`.nav-link[onclick*="'${tab.id}'"]`);
+                        if(navBtn) navBtn.remove();
+                        tab.remove();
+                    }
+                });
+
+                const titleNode = clone.querySelector('title');
+                if(titleNode) titleNode.innerText = "TARUS Custom Field Guide";
+                const mainHeader = clone.querySelector('#sidebarSubtitle');
+                if(mainHeader) mainHeader.innerText = "Custom Field Guide";
+                const mobileHeader = clone.querySelector('#mobileTitle');
+                if(mobileHeader) mobileHeader.innerText = "Custom Field Guide";
+
+                downloadHtml(`TARUS_Field_Guide_${dateStr}.html`, clone);
+            } else {
+                downloadHtml(`TARUS_Master_Guide_Update_${dateStr}.html`, clone);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById("defaultOpen").click();
+        });
+    </script>
+</body>
+</html>
